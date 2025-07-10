@@ -1,3 +1,3 @@
 
- Group !7 and !*
+ Group 17 and 18
 # Smart security
