@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Security Dashboard</title>
+  <link rel="icon" href="static/favicon.ico" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+
+<body>
+  <header>
+    <h1>Smart Security Dashboard</h1>
+    <div class="header-buttons">
+      <button onclick="openProfile()">Profile</button>
+      <button class="signout" onclick="signOut()">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="container" id="devicesContainer">
+    <section>
+      <h2>Loading devices...</h2>
+    </section>
+  </main>
+
+  <section class="alerts-section">
+    <h2>Alerts & Notifications</h2>
+    <ul class="alerts-list" id="alertsList">
+      <li>Loading alerts...</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 SmartHome Security</p>
+  </footer>
+
+  <!-- Profile Modal -->
+  <div id="profileModal">
+    <div class="modal-content">
+      <h3>Profile Settings</h3>
+      <form id="profileForm">
+        <input type="email" id="profileEmail" placeholder="New Email" />
+        <input type="text" id="profilePhone" placeholder="New Phone" />
+        <input type="password" id="profilePassword" placeholder="New Password" />
+        <button type="submit">Update</button>
+        <button type="button" onclick="closeProfile()">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+
+</html>
