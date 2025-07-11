@@ -153,7 +153,41 @@
   </div>
 
   <script>
-    const BASE_URL = 'https://homesecurity-cw0e.onrender.com';
+    const express = require('express');
+const cors = require('cors');
+const app = express();
+
+// Enable CORS
+app.use(cors({
+  origin: [
+    'http://localhost:5500', // Local testing
+    'https://' // Production frontend URL
+  ],
+  credentials: true // Allow cookies and Authorization headers
+}));
+    const API = {
+      BASE_URL: 'https://homesecurity-cw0e.onrender.com',
+      AUTH: {
+        LOGIN: 'https://homesecurity-cw0e.onrender.com/api/auth/login',
+        LOGOUT: 'https://homesecurity-cw0e.onrender.com/api/auth/logout'
+      },
+      USERS: {
+        ME: 'https://homesecurity-cw0e.onrender.com/api/users/me',
+        EMAIL: 'https://homesecurity-cw0e.onrender.com/api/users/email',
+        PHONE: 'https://homesecurity-cw0e.onrender.com/api/users/phone',
+        PASSWORD: 'https://homesecurity-cw0e.onrender.com/api/users/password'
+      },
+      DEVICES: {
+        ME: 'https://homesecurity-cw0e.onrender.com/api/devices/me',
+        STATUS: 'https://homesecurity-cw0e.onrender.com/api/devices/status'
+      },
+      ALERTS: 'https://homesecurity-cw0e.onrender.com/api/alerts',
+      SSE_ALERTS: 'https://homesecurity-cw0e.onrender.com/api/sse/alerts',
+      PASSWORD_RESETS: {
+        REQUEST: 'https://homesecurity-cw0e.onrender.com/api/password-resets/request',
+        RESET: 'https://homesecurity-cw0e.onrender.com/api/password-resets/reset'
+      }
+    };
 
     function getCookie(name) {
       const cookies = document.cookie.split(';');
@@ -171,7 +205,7 @@
 
     async function fetchDevices() {
       try {
-        const response = await fetch(`${BASE_URL}/api/devices/me`, { credentials: 'include' });
+        const response = await fetch(API.DEVICES.ME, { credentials: 'include' });
         if (response.status === 401) {
           alert("Session expired. Please log in again.");
           window.location.href = "login.html";
@@ -204,7 +238,7 @@
 
     async function toggleDevice(deviceId) {
       try {
-        const response = await fetch(`${BASE_URL}/api/devices/status`, {
+        const response = await fetch(API.DEVICES.STATUS, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -222,7 +256,7 @@
     }
 
     function signOut() {
-      fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+      fetch(API.AUTH.LOGOUT, { method: 'POST', credentials: 'include' })
         .finally(() => {
           document.cookie = "userEmail=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           alert("Signed out successfully.");
@@ -231,7 +265,7 @@
     }
 
     function openProfile() {
-      fetch(`${BASE_URL}/api/users/me`, { credentials: 'include' })
+      fetch(API.USERS.ME, { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
           document.getElementById('profileEmail').value = data.email || '';
@@ -251,21 +285,21 @@
       const phone = document.getElementById('profilePhone').value;
       const password = document.getElementById('profilePassword').value;
 
-      if (email) await fetch(`${BASE_URL}/api/users/email`, {
+      if (email) await fetch(API.USERS.EMAIL, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
         body: JSON.stringify({email})
       });
 
-      if (phone) await fetch(`${BASE_URL}/api/users/phone`, {
+      if (phone) await fetch(API.USERS.PHONE, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
         body: JSON.stringify({phone})
       });
 
-      if (password) await fetch(`${BASE_URL}/api/users/password`, {
+      if (password) await fetch(API.USERS.PASSWORD, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
@@ -277,7 +311,7 @@
     });
 
     function startSSE() {
-      const evtSource = new EventSource(`${BASE_URL}/api/sse/alerts`);
+      const evtSource = new EventSource(API.SSE_ALERTS);
       evtSource.onmessage = (event) => {
         const alert = JSON.parse(event.data);
         const li = document.createElement('li');
