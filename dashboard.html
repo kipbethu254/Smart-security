@@ -7,7 +7,6 @@
   <title>Smart Security Dashboard</title>
   <link rel="icon" href="static/favicon.ico" />
   <style>
-    /* Reset & Styling */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -88,6 +87,28 @@
       text-align: center;
       padding: 1rem;
     }
+    /* Profile Modal */
+    #profileModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    #profileModal .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+      text-align: center;
+    }
+    #profileModal input, #profileModal button {
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -95,7 +116,8 @@
   <header>
     <h1>Smart Security Dashboard</h1>
     <div class="header-buttons">
-      <button onclick="signOut()">Sign Out</button>
+      <button onclick="openProfile()">Profile</button>
+      <button class="signout" onclick="signOut()">Sign Out</button>
     </div>
   </header>
 
@@ -116,8 +138,23 @@
     <p>&copy; 2025 SmartHome Security</p>
   </footer>
 
+  <!-- Profile Modal -->
+  <div id="profileModal">
+    <div class="modal-content">
+      <h3>Profile Settings</h3>
+      <form id="profileForm">
+        <input type="email" id="profileEmail" placeholder="New Email" />
+        <input type="text" id="profilePhone" placeholder="New Phone" />
+        <input type="password" id="profilePassword" placeholder="New Password" />
+        <button type="submit">Update</button>
+        <button type="button" onclick="closeProfile()">Cancel</button>
+      </form>
+    </div>
+  </div>
+
   <script>
-    // Get cookie helper
+    const BASE_URL = 'https://homesecurity-cw0e.onrender.com';
+
     function getCookie(name) {
       const cookies = document.cookie.split(';');
       for (let cookie of cookies) {
@@ -134,7 +171,7 @@
 
     async function fetchDevices() {
       try {
-        const response = await fetch('/api/devices/me');
+        const response = await fetch(`${BASE_URL}/api/devices/me`, { credentials: 'include' });
         if (response.status === 401) {
           alert("Session expired. Please log in again.");
           window.location.href = "login.html";
@@ -167,13 +204,14 @@
 
     async function toggleDevice(deviceId) {
       try {
-        const response = await fetch('/api/devices/status', {
+        const response = await fetch(`${BASE_URL}/api/devices/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ deviceId, action: 'toggle' })
         });
         if (response.ok) {
-          fetchDevices(); // Refresh statuses
+          fetchDevices();
         } else {
           alert("Failed to toggle device.");
         }
@@ -183,25 +221,8 @@
       }
     }
 
-    async function fetchAlerts() {
-      try {
-        const response = await fetch('/api/alerts');
-        const alerts = await response.json();
-        const alertsList = document.getElementById('alertsList');
-        alertsList.innerHTML = '';
-        alerts.forEach(alert => {
-          const li = document.createElement('li');
-          li.textContent = `${new Date(alert.timestamp).toLocaleTimeString()} - ${alert.message}`;
-          alertsList.appendChild(li);
-        });
-      } catch (err) {
-        console.error(err);
-        document.getElementById('alertsList').innerHTML = "<li>Error loading alerts.</li>";
-      }
-    }
-
     function signOut() {
-      fetch('/api/auth/logout', { method: 'POST' })
+      fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
         .finally(() => {
           document.cookie = "userEmail=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           alert("Signed out successfully.");
@@ -209,11 +230,67 @@
         });
     }
 
+    function openProfile() {
+      fetch(`${BASE_URL}/api/users/me`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('profileEmail').value = data.email || '';
+          document.getElementById('profilePhone').value = data.phone || '';
+          document.getElementById('profileModal').style.display = 'flex';
+        })
+        .catch(err => alert('Failed to load profile'));
+    }
+
+    function closeProfile() {
+      document.getElementById('profileModal').style.display = 'none';
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('profileEmail').value;
+      const phone = document.getElementById('profilePhone').value;
+      const password = document.getElementById('profilePassword').value;
+
+      if (email) await fetch(`${BASE_URL}/api/users/email`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({email})
+      });
+
+      if (phone) await fetch(`${BASE_URL}/api/users/phone`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({phone})
+      });
+
+      if (password) await fetch(`${BASE_URL}/api/users/password`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({password})
+      });
+
+      alert('Profile updated!');
+      closeProfile();
+    });
+
+    function startSSE() {
+      const evtSource = new EventSource(`${BASE_URL}/api/sse/alerts`);
+      evtSource.onmessage = (event) => {
+        const alert = JSON.parse(event.data);
+        const li = document.createElement('li');
+        li.textContent = `${new Date(alert.timestamp).toLocaleTimeString()} - ${alert.message}`;
+        const alertsList = document.getElementById('alertsList');
+        alertsList.insertBefore(li, alertsList.firstChild);
+      };
+      evtSource.onerror = () => console.error('SSE connection error');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       fetchDevices();
-      fetchAlerts();
-      setInterval(fetchDevices, 5000); // Poll devices every 5 seconds
-      setInterval(fetchAlerts, 10000); // Poll alerts every 10 seconds
+      startSSE();
     });
   </script>
 </body>

@@ -25,10 +25,10 @@
       box-shadow: 0 0 25px rgba(0, 0, 0, 0.2);
       width: 100%;
       max-width: 400px;
+      text-align: center;
     }
 
     h2 {
-      text-align: center;
       margin-bottom: 20px;
       color: #333;
     }
@@ -58,6 +58,40 @@
     button:hover {
       background-color: #059669;
     }
+
+    .forgot-link {
+      margin-top: 10px;
+      display: block;
+      color: #2563eb;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .forgot-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Reset Password Modal */
+    #resetModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    #resetModal .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+      text-align: center;
+    }
+    #resetModal input, #resetModal button {
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -69,9 +103,24 @@
       <input type="password" id="password" placeholder="Password" required />
       <button type="submit">Login</button>
     </form>
+    <a href="#" class="forgot-link" onclick="openReset()">Forgot Password?</a>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div id="resetModal">
+    <div class="modal-content">
+      <h3>Reset Password</h3>
+      <form id="resetForm">
+        <input type="email" id="resetEmail" placeholder="Your Email" required /><br/>
+        <button type="submit">Request Reset</button>
+        <button type="button" onclick="closeReset()">Cancel</button>
+      </form>
+    </div>
   </div>
 
   <script>
+    const BASE_URL = 'https://homesecurity-cw0e.onrender.com';
+
     // Set cookie helper
     function setCookie(name, value, days) {
       const d = new Date();
@@ -86,15 +135,15 @@
       const password = document.getElementById('password').value;
 
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch(`${BASE_URL}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ email, password })
         });
 
         if (response.ok) {
           const data = await response.json();
-          // Save user email in cookie (you may also save JWT/token if needed)
           setCookie('userEmail', email, 7);
           alert("Login successful!");
           window.location.href = "dashboard.html";
@@ -105,6 +154,39 @@
       } catch (err) {
         console.error(err);
         alert("Network error. Please try again.");
+      }
+    });
+
+    function openReset() {
+      document.getElementById('resetModal').style.display = 'flex';
+    }
+
+    function closeReset() {
+      document.getElementById('resetModal').style.display = 'none';
+    }
+
+    document.getElementById('resetForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('resetEmail').value;
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/password-resets/request`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'include',
+          body: JSON.stringify({ email })
+        });
+
+        if (response.ok) {
+          alert('Password reset link sent to your email.');
+          closeReset();
+        } else {
+          const error = await response.json();
+          alert("Reset failed: " + (error.message || response.statusText));
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to request password reset.");
       }
     });
   </script>
